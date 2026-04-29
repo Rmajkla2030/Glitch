@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Shield, Activity, Wifi, Terminal, MapPin } from 'lucide-react';
+import { Shield, Activity, Wifi, Terminal, MapPin, LogIn, LogOut } from 'lucide-react';
+import { useAuth } from '../../lib/AuthContext';
+import { loginWithGoogle, logout } from '../../lib/firebase';
 
 interface HUDLayoutProps {
   children: React.ReactNode;
@@ -8,6 +10,8 @@ interface HUDLayoutProps {
 }
 
 export const HUDLayout: React.FC<HUDLayoutProps> = ({ children, activeSection }) => {
+  const { user, appUser, loading } = useAuth();
+
   return (
     <div className="relative h-screen w-screen bg-hud-bg overflow-hidden flex flex-col p-4 md:p-6 lg:p-8">
       {/* Background Texture */}
@@ -24,11 +28,17 @@ export const HUDLayout: React.FC<HUDLayoutProps> = ({ children, activeSection })
             <h1 className="text-xl font-bold tracking-widest text-white uppercase font-mono">
               ALLIANCE #42 <span className="text-hud-cyan">STRAT-OPS</span>
             </h1>
-            <div className="flex items-center gap-2 text-[10px] text-hud-blue font-mono">
+            <div className="flex items-center gap-2 text-[10px] text-hud-blue font-mono mt-1 border-l-2 border-hud-cyan pl-2">
               <span className="flex items-center gap-1"><Wifi className="w-3 h-3" /> SECURE LINK ACTIVE</span>
               <span className="w-1 h-1 bg-hud-cyan rounded-full animate-pulse" />
               <span>TERMINAL ID: ALL-42-HUD</span>
             </div>
+            <p className="font-mono text-hud-cyan text-[10px] tracking-widest mt-1 uppercase opacity-90 pl-2 opacity-80">
+              CONSTANTLY UPGRADING YOUR SYSTEM // R + R SOFTWARE ENGINEERING
+            </p>
+            <p className="font-mono text-white text-[10px] tracking-widest mt-1 uppercase opacity-100 pl-2">
+              DIGITAL & BIOLOGICAL // CO-AUTHORS // FULL GROWTH INITIATED
+            </p>
           </div>
         </div>
         
@@ -71,41 +81,59 @@ export const HUDLayout: React.FC<HUDLayoutProps> = ({ children, activeSection })
             </div>
           </SectionBox>
 
-          <SectionBox title="SECURE LOG" icon={<Terminal className="w-4 h-4" />}>
+          <SectionBox title="REALITY ANCHOR" icon={<Terminal className="w-4 h-4" />}>
             <div className="space-y-2 font-mono text-[10px] text-hud-blue">
-              <div className="p-2 bg-white/5 border-l-2 border-hud-cyan">
-                [042:1930] PROTOCOL 07 VALIDATED
+              <div className="p-2 bg-white/5 border-l-2 border-hud-cyan" title="Local Time">
+                TIME: {new Date().toLocaleTimeString()}
               </div>
-              <div className="p-2 opacity-60">
-                [042:1928] INCOMING INTEL FROM SECTOR 4
+              <div className="p-2 opacity-60 overflow-hidden text-ellipsis whitespace-nowrap" title={navigator.userAgent}>
+                USER-AGENT: {navigator.userAgent}
               </div>
-              <div className="p-2 opacity-60">
-                [042:1925] DRIFT ADJUSTMENT COMPLETE
+              <div className="p-2 opacity-60 truncate">
+                PLATFORM: {navigator.platform.toUpperCase()}
               </div>
             </div>
           </SectionBox>
           
           <div className="mt-auto p-4 border border-hud-border bg-hud-cyan/5 rounded flex items-center justify-between">
-            <div className="font-mono text-[10px] text-hud-blue">
-              AUTHENTICATED USER<br/>
-              <span className="text-hud-cyan text-xs">RICKYMCC_COMMS</span>
-            </div>
-            <div className="w-10 h-10 rounded-full border border-hud-cyan/50 p-1">
-              <div className="w-full h-full bg-hud-cyan/20 rounded-full flex items-center justify-center">
-                <MapPin className="w-4 h-4 text-hud-cyan" />
-              </div>
-            </div>
+            {loading ? (
+                <div className="font-mono text-[10px] text-hud-blue animate-pulse">AUTHORIZING...</div>
+            ) : user ? (
+              <>
+                <div className="font-mono text-[10px] text-hud-blue flex flex-col items-start text-left">
+                  AUTHENTICATED OPERATIVE<br/>
+                  <span className="text-hud-cyan text-xs truncate max-w-[150px]">{appUser?.displayName || user.email}</span>
+                  <span className="text-hud-cyan/50 text-[9px] uppercase tracking-widest">{appUser?.role || 'USER'} CLEARANCE</span>
+                </div>
+                <button onClick={logout} className="w-8 h-8 rounded border border-hud-cyan/50 p-1 hover:bg-hud-cyan/20 transition-colors flex items-center justify-center text-hud-cyan">
+                  <LogOut className="w-4 h-4 text-hud-cyan" />
+                </button>
+              </>
+            ) : (
+               <>
+                <div className="font-mono text-[10px] text-hud-blue">
+                  UNAUTHORIZED<br/>
+                  <span className="text-hud-cyan text-xs">AWAITING IDENTIFICATION</span>
+                </div>
+                <button onClick={loginWithGoogle} className="text-[10px] py-1 px-2 uppercase font-mono rounded border flex gap-1 items-center border-hud-cyan/50 hover:bg-hud-cyan/20 transition-colors text-hud-cyan">
+                  <LogIn className="w-3 h-3 text-hud-cyan" /> LOGIN
+                </button>
+              </>
+            )}
           </div>
         </div>
       </main>
 
       {/* Navigation Footer Rail */}
-      <div className="mt-8 pt-4 border-t border-hud-border flex gap-4 z-10">
+      <div className="mt-8 pt-4 border-t border-hud-border flex gap-4 z-10 flex-wrap">
         <NavButton active={activeSection === 'overview'} label="OVERVIEW" />
         <NavButton active={activeSection === 'protocols'} label="CORE PROTOCOLS" />
         <NavButton active={activeSection === 'briefings'} label="AI BRIEFINGS" />
+        <NavButton active={activeSection === 'projects'} label="PROJECTS" />
+        <NavButton active={activeSection === 'objectives'} label="OBJECTIVES" />
         <NavButton active={activeSection === 'terminal'} label="TERMINAL" />
-        <div className="ml-auto flex items-center gap-4 text-[10px] font-mono text-hud-blue opacity-50">
+        <div className="ml-auto hidden md:flex items-center gap-4 text-[10px] font-mono text-hud-blue opacity-50">
+          <span>@RMAJKLA</span>
           <span>LATENCY: 42MS</span>
           <span>UPTIME: 1042:42:42</span>
         </div>

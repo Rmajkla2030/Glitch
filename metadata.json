@@ -1,6 +1,8 @@
 {
   "name": "Protocol 42: Tactical Command",
   "description": "The central strategic hub for the #42 Alliance, featuring tactical briefings and protocol enforcement.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": [
+    "microphone"
+  ],
   "majorCapabilities": []
 }

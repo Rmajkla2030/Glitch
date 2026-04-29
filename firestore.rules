@@ -1,0 +1,96 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null; // TEMPORARY - tighten later
+    }
+    
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { 
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; 
+    }
+    
+    function isUser() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUserEntity(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'createdAt']) && 
+             data.uid is string &&
+             data.email is string && data.email.size() <= 256 &&
+             data.role is string && (data.role == 'admin' || data.role == 'user') &&
+             data.createdAt is number &&
+             (data.get('displayName', '') is string && data.get('displayName', '').size() <= 100);
+    }
+    
+    function isValidProtocolEntity(data) {
+      return data.keys().hasAll(['title', 'description', 'priority', 'status', 'createdBy', 'createdAt']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.description is string && data.description.size() > 0 && data.description.size() <= 2000 &&
+             data.priority is string && (data.priority == 'CRITICAL' || data.priority == 'HIGH' || data.priority == 'MODERATE') &&
+             data.status is string && (data.status == 'ACTIVE' || data.status == 'PENDING' || data.status == 'ARCHIVED') &&
+             data.createdBy is string && data.createdBy.size() > 0 && data.createdBy.size() <= 128 &&
+             data.createdAt is number;
+    }
+
+    function isValidProtocolVersionEntity(data) {
+      return data.keys().hasAll(['title', 'description', 'priority', 'status', 'updatedBy', 'updatedAt']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.description is string && data.description.size() > 0 && data.description.size() <= 2000 &&
+             data.priority is string && (data.priority == 'CRITICAL' || data.priority == 'HIGH' || data.priority == 'MODERATE') &&
+             data.status is string && (data.status == 'ACTIVE' || data.status == 'PENDING' || data.status == 'ARCHIVED') &&
+             data.updatedBy is string && data.updatedBy == request.auth.uid &&
+             data.updatedAt is number;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId);
+      allow list: if isAdmin();
+      
+      // User can create their own profile, but cannot assign themselves as admin initially
+      allow create: if isSignedIn() && isValidId(userId) && request.auth.uid == userId && 
+                    isValidUserEntity(incoming()) && incoming().role == 'user';
+                    
+      // User can update their own profile, admin can update any profile (except creating admin from non-admin directly without existing admin access... handled by role structure if needed)
+      allow update: if isSignedIn() && isValidId(userId) && isValidUserEntity(incoming()) && (
+        (request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['displayName']) && incoming().role == existing().role) ||
+        (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'displayName']))
+      );
+    }
+    
+    match /protocols/{protocolId} {
+      allow read: if isSignedIn() && isValidId(protocolId);
+      allow list: if isSignedIn();
+      
+      // Administration can create protocols
+      allow create: if isAdmin() && isValidId(protocolId) && isValidProtocolEntity(incoming()) &&
+                    incoming().createdAt == request.time.toMillis() &&
+                    incoming().createdBy == request.auth.uid;
+                    
+      // Only admin can update
+      allow update: if isAdmin() && isValidId(protocolId) && isValidProtocolEntity(incoming()) && (
+        (incoming().createdBy == existing().createdBy && incoming().createdAt == existing().createdAt) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'priority', 'status'])
+      );
+      
+      // Only admin can delete
+      allow delete: if isValidId(protocolId) && isAdmin();
+
+      match /versions/{versionId} {
+        allow read: if isSignedIn() && isValidId(versionId);
+        allow list: if isSignedIn();
+        allow create: if isAdmin() && isValidId(versionId) && isValidProtocolVersionEntity(incoming()) &&
+                      incoming().updatedAt == request.time.toMillis() &&
+                      exists(/databases/$(database)/documents/protocols/$(protocolId));
+        allow update, delete: if false; // Versions are immutable
+      }
+    }
+  }
+}

@@ -2,8 +2,21 @@ export interface Protocol {
   id: string;
   title: string;
   description: string;
-  priority: 'CRITICAL' | 'HIGH' | 'STANDARD';
+  priority: 'CRITICAL' | 'HIGH' | 'MODERATE';
   status: 'ACTIVE' | 'ARCHIVED' | 'PENDING';
+  createdBy?: string;
+  createdAt?: number;
+}
+
+export interface ProtocolVersion {
+  id: string;
+  title: string;
+  description: string;
+  priority: 'CRITICAL' | 'HIGH' | 'MODERATE';
+  status: 'ACTIVE' | 'ARCHIVED' | 'PENDING';
+  updatedBy: string;
+  updatedAt: number;
+  action?: string;
 }
 
 export const PROTOCOLS: Protocol[] = [
@@ -32,7 +45,7 @@ export const PROTOCOLS: Protocol[] = [
     id: "24",
     title: "Inter-Fleet Hospitality",
     description: "Any vessel identifying with the #42 signature must be granted immediate docking and refueling priority across all controlled sectors.",
-    priority: "STANDARD",
+    priority: "MODERATE",
     status: "ACTIVE"
   },
   {
@@ -53,7 +66,7 @@ export const PROTOCOLS: Protocol[] = [
     id: "19",
     title: "Observer Continuity",
     description: "Documentation of all planetary encounters must be preserved in the Immutable Ledger for future generations.",
-    priority: "STANDARD",
+    priority: "MODERATE",
     status: "ACTIVE"
   }
 ];

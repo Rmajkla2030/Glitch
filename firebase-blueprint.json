@@ -1,0 +1,67 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "A registered user of the application",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "user"]
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "integer"
+        }
+      },
+      "required": ["email", "role", "createdAt"]
+    },
+    "protocol": {
+      "title": "Protocol",
+      "description": "A core protocol",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "priority": { "type": "string", "enum": ["CRITICAL", "HIGH", "MODERATE"] },
+        "status": { "type": "string", "enum": ["ACTIVE", "PENDING", "ARCHIVED"] },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "integer" }
+      },
+      "required": ["title", "description", "priority", "status", "createdBy", "createdAt"]
+    },
+    "protocolVersion": {
+      "title": "Protocol Version",
+      "description": "A specific version of a protocol",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "priority": { "type": "string", "enum": ["CRITICAL", "HIGH", "MODERATE"] },
+        "status": { "type": "string", "enum": ["ACTIVE", "PENDING", "ARCHIVED"] },
+        "updatedBy": { "type": "string" },
+        "updatedAt": { "type": "integer" }
+      },
+      "required": ["title", "description", "priority", "status", "updatedBy", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/user" },
+      "description": "Stores user profiles including their roles"
+    },
+    "protocols/{protocolId}": {
+      "schema": { "$ref": "#/entities/protocol" },
+      "description": "Stores protocols created by users"
+    },
+    "protocols/{protocolId}/versions/{versionId}": {
+      "schema": { "$ref": "#/entities/protocolVersion" },
+      "description": "Stores previous versions of a protocol."
+    }
+  }
+}
